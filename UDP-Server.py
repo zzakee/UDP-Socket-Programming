@@ -29,8 +29,8 @@ def handle_client(server_socket):
     """建立连接"""
     while True:
         try:
-            message, client_address = server_socket.recvfrom(Buffer_Size)  # 接收客户端消息
-            if message.decode() == "HELLO_SERVER":  # 检查握手消息
+            request, client_address = server_socket.recvfrom(Buffer_Size)  # 接收客户端消息
+            if request.decode() == "HELLO_SERVER":  # 检查握手消息
                 server_socket.sendto("HELLO_CLIENT".encode(), client_address)  # 发送握手响应
                 print(f"A connection is successfully established with {client_address}")  # 连接成功
                 return True, client_address
@@ -44,13 +44,13 @@ def run_client(server_socket):
     if flag:  # 处理客户端的初始连接
         while True:  # 持续运行
             try:
-                data, address = server_socket.recvfrom(Buffer_Size)  # 接收数据报文
-                if data.decode() == "close":  # 检查关闭连接消息
+                request, address = server_socket.recvfrom(Buffer_Size)  # 接收数据报文
+                if request.decode() == "close":  # 检查关闭连接消息
                     server_socket.sendto("close".encode(), client_address)
                     print(f"Client {client_address} is closed")  # 打印关闭连接消息
                     break
                 if address == client_address:
-                    parts = data.decode()  # 解析数据报文
+                    parts = request.decode()  # 解析数据报文
                     seq_no = int(parts[0:Seq_Bytes])  # 获取序列号
                     current_time = time.strftime("%H-%M-%S", time.localtime())  # 获取当前时间
                     response_message = construct_response_message(seq_no, current_time)  # 构建响应报文
