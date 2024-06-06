@@ -2,6 +2,7 @@ import ipaddress
 import socket
 import sys
 import time
+import numpy as np
 
 # 常量
 TIMEOUT = 0.1  # 超时时间（秒）
@@ -18,6 +19,8 @@ Length_Bytes = 3  # 长度字节长度
 Time_Bytes = 8  # 时间字节长度
 Payload_Bytes = 196  # 负载信息长度
 Message_Bytes = 203  # 消息长度
+global BEGIN_TIME, END_TIME  # 记录server的初始和终止响应时间
+
 
 # +-----------------+----------+--------+---------+-----------------------------+
 # | sequence_number | version  |  type  |  length |            payload           |
@@ -50,6 +53,8 @@ def establish_connection(ip, port, client_socket):
         client_socket.sendto(handshake_message.encode(), (ip, port))  # 发送握手
         response, server_address = client_socket.recvfrom(Buffer_Size)  # 接受响应
         if response.decode() == "HELLO_CLIENT":
+            global BEGIN_TIME
+            BEGIN_TIME = time.perf_counter()
             print("The connection to the server is successfully established")  # 与服务器建立连接成功
             return True
         else:
@@ -111,6 +116,8 @@ def print_summary(rtt_times, received_packets, total_retransmissions):
         print(f"Min RTT: {min(rtt_times):.2f} ms")  # 最小RTT
         print(f"Max RTT: {max(rtt_times):.2f} ms")  # 最大RTT
         print(f"Avg RTT: {sum(rtt_times) / len(rtt_times):.2f} ms")  # 平均RTT
+        print(f"Std RTT: {np.std(rtt_times):.2f} ms")  # RTT标准差
+    print(f"Total time: {END_TIME - BEGIN_TIME:.2f} s")
 
 
 def main(ip, port, client_socket):
@@ -146,9 +153,11 @@ def main(ip, port, client_socket):
                 print(f"Packet {sequence_number} failed after {MAX_RETRANSMISSIONS} retransmissions")
 
     client_socket.sendto("close".encode(), (ip, port))  # 断开连接
-    print_summary(rtt_times, received_packets, total_retransmissions)  # 打印统计信息
     response, server = client_socket.recvfrom(Buffer_Size)  # 接收响应
     if response.decode() == "close":
+        global END_TIME
+        END_TIME = time.perf_counter()
+        print_summary(rtt_times, received_packets, total_retransmissions)  # 打印统计信息
         client_socket.close()  # 关闭套接字
 
 
